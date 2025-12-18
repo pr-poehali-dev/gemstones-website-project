@@ -1,187 +1,237 @@
 import { useState } from 'react';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import GemstoneCard from '@/components/GemstoneCard';
+import SearchFilters from '@/components/SearchFilters';
+import { gemstones } from '@/data/gemstones';
+import { SearchFilters as Filters, Gemstone } from '@/types/gemstone';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import Icon from '@/components/ui/icon';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
-interface Stone {
-  id: number;
-  name: string;
-  color: string;
-  properties: string[];
-  energy: string;
-  chakra: string;
-  hardness: string;
-}
+export default function Catalog() {
+  const [filters, setFilters] = useState<Filters>({});
+  const [selectedGemstone, setSelectedGemstone] = useState<Gemstone | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
-const stones: Stone[] = [
-  {
-    id: 1,
-    name: 'Аметист',
-    color: 'Фиолетовый',
-    properties: ['Спокойствие', 'Интуиция', 'Защита'],
-    energy: 'Высокая',
-    chakra: 'Сахасрара',
-    hardness: '7'
-  },
-  {
-    id: 2,
-    name: 'Розовый кварц',
-    color: 'Розовый',
-    properties: ['Любовь', 'Гармония', 'Исцеление'],
-    energy: 'Мягкая',
-    chakra: 'Анахата',
-    hardness: '7'
-  },
-  {
-    id: 3,
-    name: 'Тигровый глаз',
-    color: 'Золотисто-коричневый',
-    properties: ['Уверенность', 'Сила', 'Защита'],
-    energy: 'Сильная',
-    chakra: 'Манипура',
-    hardness: '7'
-  },
-  {
-    id: 4,
-    name: 'Лунный камень',
-    color: 'Белый с переливом',
-    properties: ['Женственность', 'Интуиция', 'Новые начинания'],
-    energy: 'Лунная',
-    chakra: 'Сахасрара',
-    hardness: '6-6.5'
-  },
-  {
-    id: 5,
-    name: 'Малахит',
-    color: 'Зеленый',
-    properties: ['Трансформация', 'Защита', 'Исцеление'],
-    energy: 'Преобразующая',
-    chakra: 'Анахата',
-    hardness: '3.5-4'
-  },
-  {
-    id: 6,
-    name: 'Лазурит',
-    color: 'Синий',
-    properties: ['Мудрость', 'Истина', 'Самовыражение'],
-    energy: 'Духовная',
-    chakra: 'Вишуддха',
-    hardness: '5-6'
-  }
-];
+  const filteredGemstones = gemstones.filter((gem) => {
+    if (filters.searchQuery && !gem.name.toLowerCase().includes(filters.searchQuery.toLowerCase())) {
+      return false;
+    }
 
-const Catalog = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
+    if (filters.category && gem.category !== filters.category) {
+      return false;
+    }
 
-  const allProperties = Array.from(new Set(stones.flatMap(s => s.properties)));
+    if (filters.energy && filters.energy.length > 0) {
+      if (!gem.energy || !filters.energy.some(e => gem.energy?.includes(e))) {
+        return false;
+      }
+    }
 
-  const filteredStones = stones.filter(stone => {
-    const matchesSearch = stone.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         stone.color.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         stone.energy.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesProperty = !selectedProperty || stone.properties.includes(selectedProperty);
-    
-    return matchesSearch && matchesProperty;
+    if (filters.chakra && filters.chakra.length > 0) {
+      if (!gem.chakra || !filters.chakra.some(c => gem.chakra?.includes(c))) {
+        return false;
+      }
+    }
+
+    if (filters.hardness) {
+      if (gem.hardness < filters.hardness[0] || gem.hardness > filters.hardness[1]) {
+        return false;
+      }
+    }
+
+    return true;
   });
 
   return (
-    <div className="pt-24 pb-12">
-      <div className="container mx-auto px-4">
-        <h1 className="text-5xl font-bold text-center mb-12 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
-          Каталог самоцветов
-        </h1>
+    <div className="min-h-screen">
+      <Header />
 
-        <div className="max-w-4xl mx-auto mb-12 space-y-6">
-          <div className="relative">
-            <Icon name="Search" size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-            <Input
-              type="text"
-              placeholder="Поиск по названию, цвету, энергетике..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 bg-slate-800/50 border-purple-500/30 text-white placeholder:text-slate-500 h-14 text-lg"
-            />
-          </div>
+      <div className="container mx-auto px-4 pt-24 pb-20">
+        <div className="mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 gradient-text">Каталог самоцветов</h1>
+          <p className="text-muted-foreground">
+            Найдено камней: {filteredGemstones.length}
+          </p>
+        </div>
 
-          <div>
-            <p className="text-slate-400 mb-3">Фильтр по свойствам:</p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={selectedProperty === null ? "default" : "outline"}
-                onClick={() => setSelectedProperty(null)}
-                className={selectedProperty === null ? "bg-purple-600" : "border-purple-500/30"}
-              >
-                Все
-              </Button>
-              {allProperties.map(prop => (
-                <Button
-                  key={prop}
-                  variant={selectedProperty === prop ? "default" : "outline"}
-                  onClick={() => setSelectedProperty(prop)}
-                  className={selectedProperty === prop ? "bg-purple-600" : "border-purple-500/30"}
-                >
-                  {prop}
-                </Button>
+        <div className="lg:hidden mb-6">
+          <Button
+            onClick={() => setShowFilters(!showFilters)}
+            variant="outline"
+            className="w-full gap-2"
+          >
+            <Icon name="Filter" size={20} />
+            {showFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
+          </Button>
+        </div>
+
+        <div className="grid lg:grid-cols-4 gap-8">
+          <aside className={`${showFilters ? 'block' : 'hidden'} lg:block`}>
+            <SearchFilters filters={filters} onFiltersChange={setFilters} />
+          </aside>
+
+          <div className="lg:col-span-3">
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredGemstones.map((gem) => (
+                <GemstoneCard
+                  key={gem.id}
+                  gemstone={gem}
+                  onClick={() => setSelectedGemstone(gem)}
+                />
               ))}
             </div>
+
+            {filteredGemstones.length === 0 && (
+              <div className="text-center py-20 glass rounded-lg">
+                <Icon name="SearchX" size={48} className="mx-auto mb-4 text-muted-foreground" />
+                <p className="text-lg text-muted-foreground">
+                  Камни не найдены. Попробуйте изменить фильтры.
+                </p>
+              </div>
+            )}
           </div>
         </div>
+      </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredStones.map(stone => (
-            <div key={stone.id} className="bg-slate-800/50 backdrop-blur-sm border border-purple-500/30 rounded-2xl p-6 hover:border-purple-500/60 transition-all hover:scale-105">
-              <div className="flex items-start justify-between mb-4">
-                <h3 className="text-2xl font-bold text-white">{stone.name}</h3>
-                <Icon name="Gem" size={32} className="text-purple-400" />
-              </div>
-              
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <Icon name="Palette" size={16} className="text-slate-400" />
-                  <span className="text-slate-300">Цвет: {stone.color}</span>
+      <Dialog open={!!selectedGemstone} onOpenChange={() => setSelectedGemstone(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto glass">
+          {selectedGemstone && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-3xl gradient-text">
+                  {selectedGemstone.name}
+                </DialogTitle>
+                {selectedGemstone.scientificName && (
+                  <p className="text-sm text-muted-foreground italic">
+                    {selectedGemstone.scientificName}
+                  </p>
+                )}
+              </DialogHeader>
+
+              <div className="space-y-6">
+                <img
+                  src={selectedGemstone.image}
+                  alt={selectedGemstone.name}
+                  className="w-full h-64 object-cover rounded-lg"
+                />
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                    <Icon name="FileText" size={20} className="text-primary" />
+                    Описание
+                  </h3>
+                  <p className="text-muted-foreground">{selectedGemstone.description}</p>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  <Icon name="Zap" size={16} className="text-slate-400" />
-                  <span className="text-slate-300">Энергия: {stone.energy}</span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Icon name="Circle" size={16} className="text-slate-400" />
-                  <span className="text-slate-300">Чакра: {stone.chakra}</span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Icon name="Shield" size={16} className="text-slate-400" />
-                  <span className="text-slate-300">Твердость: {stone.hardness}</span>
-                </div>
-                
-                <div className="pt-3 border-t border-purple-500/20">
-                  <p className="text-slate-400 mb-2">Свойства:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {stone.properties.map(prop => (
-                      <span key={prop} className="px-3 py-1 bg-purple-600/30 text-purple-300 rounded-full text-xs">
-                        {prop}
-                      </span>
-                    ))}
+
+                <Separator />
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Icon name="Palette" size={18} className="text-primary" />
+                      Цвета
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedGemstone.color.map((color, i) => (
+                        <Badge key={i} variant="secondary">{color}</Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Icon name="Zap" size={18} className="text-primary" />
+                      Твердость
+                    </h4>
+                    <p className="text-muted-foreground">
+                      {selectedGemstone.hardness} по шкале Мооса
+                    </p>
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
 
-        {filteredStones.length === 0 && (
-          <div className="text-center py-20">
-            <Icon name="Search" size={64} className="text-slate-600 mx-auto mb-4" />
-            <p className="text-xl text-slate-400">Камни не найдены. Попробуйте изменить параметры поиска.</p>
-          </div>
-        )}
-      </div>
+                {selectedGemstone.chakra && selectedGemstone.chakra.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Icon name="Circle" size={18} className="text-primary" />
+                      Чакры
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedGemstone.chakra.map((chakra, i) => (
+                        <Badge key={i} variant="outline">{chakra}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedGemstone.energy && selectedGemstone.energy.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Icon name="Sparkles" size={18} className="text-primary" />
+                      Энергетические свойства
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedGemstone.energy.map((energy, i) => (
+                        <Badge key={i} variant="secondary">{energy}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedGemstone.healing && selectedGemstone.healing.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Icon name="Heart" size={18} className="text-primary" />
+                      Целебные свойства
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedGemstone.healing.map((healing, i) => (
+                        <Badge key={i} variant="outline">{healing}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedGemstone.zodiac && selectedGemstone.zodiac.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Icon name="Star" size={18} className="text-primary" />
+                      Знаки зодиака
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedGemstone.zodiac.map((sign, i) => (
+                        <Badge key={i}>{sign}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedGemstone.origin && selectedGemstone.origin.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Icon name="MapPin" size={18} className="text-primary" />
+                      Места добычи
+                    </h4>
+                    <p className="text-muted-foreground">
+                      {selectedGemstone.origin.join(', ')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Footer />
     </div>
   );
-};
-
-export default Catalog;
+}
